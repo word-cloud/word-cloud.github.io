@@ -1,72 +1,109 @@
 module.exports = function(grunt) {
-  "use strict";
+  'use strict';
 
   // Project configuration.
   grunt.initConfig({
     pkg: grunt.file.readJSON('package.json'),
     jshint: {
       all: [
-        'src/speechkitt.js',
         'Gruntfile.js',
-        'test/corti.js',
+        'src/annyang.js',
+        'sites/facebook.js',
+        'sites/geektime.js',
         'test/spec/*Spec.js'
       ],
       options: {
         jshintrc: true
       }
     },
-    uglify: {
+    'babel': {
+      options: {
+        sourceMap: true,
+        presets: ['env']
+      },
       dist: {
-        options: {
-          output: {
-            comments: /^\! /
-          }
-        },
         files: {
-          'dist/speechkitt.min.js': ['src/speechkitt.js']
+          'dist/annyang.js': 'src/annyang.js'
         }
       }
     },
     watch: {
-      files: ['src/speechkitt.js', 'test/*.js', 'test/spec/**.js', 'themes/**/*', '!**/node_modules/**'],
+      files: ['src/*.js', 'sites/*.js', 'demo/css/*.css', 'test/spec/*Spec.js', '!**/node_modules/**'],
       tasks: ['default']
     },
-    sass: {
-      dist: {
-        options: {
-          style: 'compressed'
-        },
+    uglify: {
+      options: {
+        output: {
+          comments: /^\! /
+        }
+      },
+      all: {
         files: {
-          'dist/themes/flat.css': 'themes/flat/flat.scss',
-          'dist/themes/flat-amethyst.css': 'themes/flat-amethyst/flat-amethyst.scss',
-          'dist/themes/flat-clouds.css': 'themes/flat-clouds/flat-clouds.scss',
-          'dist/themes/flat-concrete.css': 'themes/flat-concrete/flat-concrete.scss',
-          'dist/themes/flat-emerald.css': 'themes/flat-emerald/flat-emerald.scss',
-          'dist/themes/flat-midnight-blue.css': 'themes/flat-midnight-blue/flat-midnight-blue.scss',
-          'dist/themes/flat-orange.css': 'themes/flat-orange/flat-orange.scss',
-          'dist/themes/flat-pomegranate.css': 'themes/flat-pomegranate/flat-pomegranate.scss',
-          'dist/themes/flat-pumpkin.css': 'themes/flat-pumpkin/flat-pumpkin.scss',
-          'dist/themes/flat-turquoise.css': 'themes/flat-turquoise/flat-turquoise.scss',
-          'dist/themes/basic.css': 'themes/basic.scss'
+          'dist/annyang.min.js': ['dist/annyang.js'],
+          'sites/facebook.min.js': ['dist/annyang.js', 'sites/facebook.js'],
+          'sites/geektime.min.js': ['dist/annyang.js', 'sites/geektime.js']
+        }
+      }
+    },
+    imagemin: {
+      demoimages: {                       // Target
+        options: {                        // Target options
+        },
+        files: [{
+          expand: true,                   // Enable dynamic expansion
+          cwd: 'demo/images',             // Src matches are relative to this path
+          src: ['*.{png,jpg,gif}'],       // Actual patterns to match
+          dest: 'demo/images'             // Destination path prefix
+        }]
+      }
+    },
+    cssmin: {
+      combine: {
+        files: {
+          'demo/css/main.min.css': ['demo/css/main.css', 'demo/vendor/css/default.css', 'demo/vendor/css/github.css']
         }
       }
     },
     markdox: {
       target: {
         files: [
-          {src: 'src/speechkitt.js', dest: 'docs/README.md'}
+          {src: 'src/annyang.js', dest: 'docs/README.md'}
         ]
       }
     },
+    connect: {
+      server: {
+        options: {
+          protocol: 'https',
+          port: 8443,
+          hostname: '*',
+          base: '.',
+          open: 'https://localhost:8443/demo'
+        }
+      }
+    },
     jasmine: {
+      browserAMD: {
+        src: ['dist/annyang.min.js'],
+        options: {
+          specs: 'test/spec/*Spec.js',
+          outfile: 'test/SpecRunner.html',
+          vendor: ['test/vendor/corti.js', 'test/init_corti.js'],
+          keepRunner: true,
+          template: require('grunt-template-jasmine-requirejs'),
+          templateOptions: {
+            requireConfig: {
+              baseUrl: '../dist/'
+            }
+          }
+        }
+      },
       testAndCoverage: {
-        src: ['src/speechkitt.js'],
+        src: ['dist/annyang.min.js'],
         options: {
           specs: ['test/spec/*Spec.js'],
           outfile: 'test/SpecRunner.html',
-          polyfills: ['test/vendor/corti.js', 'test/init_corti.js', 'test/vendor/annyang.min.js', 'test/helper_functions.js'],
-          vendor: ['test/vendor/jquery-2.1.4.min.js', 'test/vendor/jasmine-jquery.js'],
-          styles: ['dist/themes/basic.css'],
+          vendor: ['test/vendor/corti.js', 'test/init_corti.js'],
           keepRunner: true,
           template: require('grunt-template-jasmine-istanbul'),
           templateOptions: {
@@ -83,10 +120,10 @@ module.exports = function(grunt) {
               }
             ],
             thresholds: {
-              lines: 50,
-              statements: 50,
-              branches: 50,
-              functions: 50
+              statements: 80,
+              branches: 65,
+              functions: 90,
+              lines: 80
             }
           }
         }
@@ -94,18 +131,14 @@ module.exports = function(grunt) {
     }
   });
 
-  // Load NPM Tasks
-  grunt.loadNpmTasks('grunt-contrib-uglify');
-  grunt.loadNpmTasks('grunt-contrib-jshint');
-  grunt.loadNpmTasks('grunt-contrib-jasmine');
-  grunt.loadNpmTasks('grunt-contrib-watch');
-  grunt.loadNpmTasks('grunt-contrib-sass');
-  grunt.loadNpmTasks('grunt-markdox');
+  // Load NPM tasks
+  require('load-grunt-tasks')(grunt, {
+    pattern: ['grunt-*', '!grunt-template-jasmine-istanbul']
+  });
 
-  // Default task(s).
-  grunt.registerTask('default', ['jshint', 'uglify', 'sass', 'jasmine', 'markdox']);
-
-  // Test task
-  grunt.registerTask('test', ['jshint', 'jasmine']);
+  // Register tasks
+  grunt.registerTask('default', ['jshint', 'babel', 'uglify', 'cssmin', 'jasmine', 'markdox']);
+  grunt.registerTask('dev', ['default', 'connect', 'watch']);
+  grunt.registerTask('test', ['default']);
 
 };

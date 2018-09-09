@@ -1,257 +1,336 @@
 
 
-<!-- Start src/speechkitt.js -->
+<!-- Start src/annyang.js -->
 
-# Getting Started
+# Quick Tutorial, Intro and Demos
 
-The quickest way to get started is described in the project's [README](https://github.com/TalAter/SpeechKITT/blob/master/README.md).
+The quickest way to get started is to visit the [annyang homepage](https://www.talater.com/annyang/).
 
-Additional details and methods to interact with KITT are described below.
+For a more in-depth look at annyang, read on.
 
 # API Reference
 
-## setStartCommand(callback, [context])
+## init(commands, [resetCommands=true])
 
-Define the function that should be called in order to start speech recognition.
+Initialize annyang with a list of commands to recognize.
 
 #### Examples:
 ````javascript
-// Will call annyang's start method
-SpeechKITT.setStartCommand(annyang.start);
-// Will call a global function called listen with a local context.
-SpeechKITT.setStartCommand(listen, this);
-// Functions can also be stated by name (string)
-SpeechKITT.setStartCommand('listen', this);
-// Using the browser's native start function
-SpeechKITT.setStartCommand(webkitSpeechRecognition.start);
+var commands = {'hello :name': helloFunction};
+var commands2 = {'hi': helloFunction};
+
+// initialize annyang, overwriting any previously added commands
+annyang.init(commands, true);
+// adds an additional command without removing the previous commands
+annyang.init(commands2, false);
+````
+As of v1.1.0 it is no longer required to call init(). Just start() listening whenever you want, and addCommands() whenever, and as often as you like.
+
+**Deprecated**
+
+See: [Commands Object](#commands-object)
+
+### Params:
+
+* **Object** *commands* - Commands that annyang should listen to
+* **boolean** *[resetCommands=true]* - Remove all commands before initializing?
+
+## start([options])
+
+Start listening.
+It's a good idea to call this after adding some commands first, but not mandatory.
+
+Receives an optional options object which supports the following options:
+
+- `autoRestart`  (boolean, default: true) Should annyang restart itself if it is closed indirectly, because of silence or window conflicts?
+- `continuous`   (boolean) Allow forcing continuous mode on or off. Annyang is pretty smart about this, so only set this if you know what you're doing.
+- `paused`       (boolean, default: false) Start annyang in paused mode.
+
+#### Examples:
+````javascript
+// Start listening, don't restart automatically
+annyang.start({ autoRestart: false });
+// Start listening, don't restart automatically, stop recognition after first phrase recognized
+annyang.start({ autoRestart: false, continuous: false });
 ````
 
 ### Params:
 
-* **Function|String** *callback* - The function to call to start speech recognition
+* **Object** *[options]* - Optional options.
+
+## abort()
+
+Stop listening, and turn off mic.
+
+Alternatively, to only temporarily pause annyang responding to commands without stopping the SpeechRecognition engine or closing the mic, use pause() instead.
+
+See: [pause()](#pause)
+
+## pause()
+
+Pause listening. annyang will stop responding to commands (until the resume or start methods are called), without turning off the browser's SpeechRecognition engine or the mic.
+
+Alternatively, to stop the SpeechRecognition engine and close the mic, use abort() instead.
+
+See: [abort()](#abort)
+
+## resume()
+
+Resumes listening and restores command callback execution when a result matches.
+If SpeechRecognition was aborted (stopped), start it.
+
+## debug([newState=true])
+
+Turn on output of debug messages to the console. Ugly, but super-handy!
+
+### Params:
+
+* **boolean** *[newState=true]* - Turn on/off debug messages
+
+## setLanguage(language)
+
+Set the language the user will speak in. If this method is not called, defaults to 'en-US'.
+
+See: [Languages](https://github.com/TalAter/annyang/blob/master/docs/FAQ.md#what-languages-are-supported)
+
+### Params:
+
+* **String** *language* - The language (locale)
+
+## addCommands(commands)
+
+Add commands that annyang will respond to. Similar in syntax to init(), but doesn't remove existing commands.
+
+#### Examples:
+````javascript
+var commands = {'hello :name': helloFunction, 'howdy': helloFunction};
+var commands2 = {'hi': helloFunction};
+
+annyang.addCommands(commands);
+annyang.addCommands(commands2);
+// annyang will now listen to all three commands
+````
+
+See: [Commands Object](#commands-object)
+
+### Params:
+
+* **Object** *commands* - Commands that annyang should listen to
+
+## removeCommands([commandsToRemove])
+
+Remove existing commands. Called with a single phrase, array of phrases, or methodically. Pass no params to remove all commands.
+
+#### Examples:
+````javascript
+var commands = {'hello': helloFunction, 'howdy': helloFunction, 'hi': helloFunction};
+
+// Remove all existing commands
+annyang.removeCommands();
+
+// Add some commands
+annyang.addCommands(commands);
+
+// Don't respond to hello
+annyang.removeCommands('hello');
+
+// Don't respond to howdy or hi
+annyang.removeCommands(['howdy', 'hi']);
+````
+
+### Params:
+
+* **String|Array|Undefined** *[commandsToRemove]* - Commands to remove
+
+## addCallback(type, callback, [context])
+
+Add a callback function to be called in case one of the following events happens:
+
+* `start` - Fired as soon as the browser's Speech Recognition engine starts listening
+* `soundstart` - Fired as soon as any sound (possibly speech) has been detected.
+    This will fire once per Speech Recognition starting. See https://is.gd/annyang_sound_start
+* `error` - Fired when the browser's Speech Recogntion engine returns an error, this generic error callback will be followed by more accurate error callbacks (both will fire if both are defined)
+    Callback function will be called with the error event as the first argument
+* `errorNetwork` - Fired when Speech Recognition fails because of a network error
+    Callback function will be called with the error event as the first argument
+* `errorPermissionBlocked` - Fired when the browser blocks the permission request to use Speech Recognition.
+    Callback function will be called with the error event as the first argument
+* `errorPermissionDenied` - Fired when the user blocks the permission request to use Speech Recognition.
+    Callback function will be called with the error event as the first argument
+* `end` - Fired when the browser's Speech Recognition engine stops
+* `result` - Fired as soon as some speech was identified. This generic callback will be followed by either the `resultMatch` or `resultNoMatch` callbacks.
+    Callback functions for to this event will be called with an array of possible phrases the user said as the first argument
+* `resultMatch` - Fired when annyang was able to match between what the user said and a registered command
+    Callback functions for this event will be called with three arguments in the following order:
+      * The phrase the user said that matched a command
+      * The command that was matched
+      * An array of possible alternative phrases the user might have said
+* `resultNoMatch` - Fired when what the user said didn't match any of the registered commands.
+    Callback functions for this event will be called with an array of possible phrases the user might've said as the first argument
+
+#### Examples:
+````javascript
+annyang.addCallback('error', function() {
+  $('.myErrorText').text('There was an error!');
+});
+
+annyang.addCallback('resultMatch', function(userSaid, commandText, phrases) {
+  console.log(userSaid); // sample output: 'hello'
+  console.log(commandText); // sample output: 'hello (there)'
+  console.log(phrases); // sample output: ['hello', 'halo', 'yellow', 'polo', 'hello kitty']
+});
+
+// pass local context to a global function called notConnected
+annyang.addCallback('errorNetwork', notConnected, this);
+````
+
+### Params:
+
+* **String** *type* - Name of event that will trigger this callback
+* **Function** *callback* - The function to call when event is triggered
 * **Object** *[context]* - Optional context for the callback function
 
-## setAbortCommand(callback, [context])
+## removeCallback(type, callback)
 
-Define the function that should be called in order to abort (stop) speech recognition.
+Remove callbacks from events.
+
+- Pass an event name and a callback command to remove that callback command from that event type.
+- Pass just an event name to remove all callback commands from that event type.
+- Pass undefined as event name and a callback command to remove that callback command from all event types.
+- Pass no params to remove all callback commands from all event types.
 
 #### Examples:
 ````javascript
-// Will call annyang's abort method
-SpeechKITT.setAbortCommand(annyang.abort);
-// Using the browser's native abort function
-SpeechKITT.setAbortCommand(webkitSpeechRecognition.abort);
+annyang.addCallback('start', myFunction1);
+annyang.addCallback('start', myFunction2);
+annyang.addCallback('end', myFunction1);
+annyang.addCallback('end', myFunction2);
+
+// Remove all callbacks from all events:
+annyang.removeCallback();
+
+// Remove all callbacks attached to end event:
+annyang.removeCallback('end');
+
+// Remove myFunction2 from being called on start:
+annyang.removeCallback('start', myFunction2);
+
+// Remove myFunction1 from being called on all events:
+annyang.removeCallback(undefined, myFunction1);
 ````
 
 ### Params:
 
-* **Function|String** *callback* - The function to call to abort speech recognition
-* **Object** *[context]* - Optional context for the callback function
+* *type* Name of event type to remove callback from
+* *callback* The callback function to remove
 
-## startRecognition()
+### Return:
 
-Starts the speech recognition. This is equivalent to the user pushing KITT's buttons.
-
-Make sure to define the speech recognition start command first using setStartCommand()
-
-## abortRecognition()
-
-Aborts the speech recognition. This is equivalent to the user pushing KITT's buttons.
-
-Make sure to define the speech recognition abort command first using setAbortCommand()
-
-## toggleRecognition()
-
-Toggles speech recognition. This is equivalent to the user pushing KITT's buttons.
-
-Make sure to define the speech recognition abort and start commands first
-
-## onStart()
-
-This function should be called when the browser's SpeechRecognition start event fires.
-
-Attach this function to the Speech Recognition instance's start event.
-
-#### Examples:
-````javascript
-var recognition = new webkitSpeechRecognition();
-recognition.addEventListener('start', SpeechKITT.onStart);
-````
-
-## onEnd()
-
-This function should be called when the browser's SpeechRecognition end event fires.
-
-Attach this function to the Speech Recognition instance's end event.
-
-*Note: KITT's interface will only change to 'stopped' 100ms after this method is called.*
-*If Speech Recognition restarts before 100ms have passed, the interface will just remain*
-*in 'started' mode (this is to prevent the interface from flickering when Speech*
-*Recognition is stopped and immediately restarted programmatically)*
-
-#### Examples:
-````javascript
-var recognition = new webkitSpeechRecognition();
-recognition.addEventListener('end', SpeechKITT.onEnd);
-````
-
-## setStylesheet(string)
-
-Set the URL for the stylesheet for the UI
-
-If a stylesheet was previously set, calling this again will update the
-interface with a new stylesheet (if the interface was already rendered,
-it will be updated)
-
-### Params:
-
-* *string* css relative or absolute url to the stylesheet
-
-## render()
-
-Call after configuring KITT, to render its interface.
-
-## vroom()
-
-Call after configuring KITT, to render its interface.
-
-Identical to calling SpeechKITT.render();
-
-See: [render()](#render)
-
-## hide()
-
-Call to hide the GUI.
-
-Interface must have been previously rendered with render()
-
-## show()
-
-Call to show the GUI if it has been hidden with hide()
-
-Interface must have been previously rendered with render()
+* undefined
 
 ## isListening()
 
-Returns true if Speech Recognition is currently on.
-
-This can be wrong if KITT wasn't completely configured correctly, or was
-started while Speech Recognition was already running.
+Returns true if speech recognition is currently on.
+Returns false if speech recognition is off or annyang is paused.
 
 ### Return:
 
-* **boolean** true = listening or false = not listening
+* boolean true = SpeechRecognition is on and annyang is listening
 
-## setToggleLabelText(string)
+## getSpeechRecognizer()
 
-Set the text for the toggle button's label.
-
-Defaults to: 'Activate Voice Control'
-
-### Params:
-
-* *string* text The text to show next to toggle button
-
-## setInstructionsText(string)
-
-Set the instructional text which will be shown next to toggle button when listening.
-
-Accepts simple text or HTML.
-
-Defaults to: 'What can I help you with?'
-
-### Params:
-
-* *string* text The text to show next to toggle button when listening
-
-## setSampleCommands(array)
-
-Pass this an array of sample textual commands which your application responds to.
-
-These will then be shown to the user to help him understand what commands he can use.
-
-### Params:
-
-* *array* commands An array of strings, each a sample command.
-
-## rememberStatus(minutes)
-
-Set this and KITT will remember when the user clicks the button to turn on Speech Recognition, and next time
-they visit the site, Speech Recognition will be turned on again (unless user turned it off, or a certain number
-of minutes has passed since it was last on).
-
-Disabled by default. Enable by passing an integer which is the number of minutes to remember.
-To disable manually after you enabled, pass 0 to it.
-
-Example:
-````javascript
-SpeechKITT.rememberStatus(120);  // Automatically start Speech Recognition for any consecutive
-                                 // visit to this page in the next 120 minutes, or until the user
-                                 // has clicked the button to stop listening.
-````
-
-### Params:
-
-* *minutes* integer Number of minutes to remember choice to turn on Speech Recognition
-
-## getLastRecognizedSentence()
-
-Returns the last sentenced recognized by speech recognition.
-
-*Note: You need to set sentences as they are recognized with setRecognizedSentence().*
-*If you are using annyang, this happens automatically.*
-
-See: [setRecognizedSentence()](#setrecognizedsentencesentence)
+Returns the instance of the browser's SpeechRecognition object used by annyang.
+Useful in case you want direct access to the browser's Speech Recognition engine.
 
 ### Return:
 
-* undefined|string
+* SpeechRecognition The browser's Speech Recognizer currently used by annyang
 
-## setRecognizedSentence(sentence)
+## trigger(string|array)
 
-Add a sentence that was recognized.
-You will usually want to call this from the SpeechRecognition's result event.
+Simulate speech being recognized. This will trigger the same events and behavior as when the Speech Recognition
+detects speech.
 
-Example:
+Can accept either a string containing a single sentence, or an array containing multiple sentences to be checked
+in order until one of them matches a command (similar to the way Speech Recognition Alternatives are parsed)
+
+#### Examples:
 ````javascript
-var recognition = new webkitSpeechRecognition();
-recognition.addEventListener('result', function(ev) {
-  SpeechKITT.setRecognizedSentence(
-    ev.results[ev.resultIndex][0].transcript // This is where the browser hides the text the user said
+annyang.trigger('Time for some thrilling heroics');
+annyang.trigger(
+    ['Time for some thrilling heroics', 'Time for some thrilling aerobics']
   );
-});
 ````
 
-*Note: If you're using annyang, this gets called automatically for you.*
-
-See: [annyang()](#annyang)
-
 ### Params:
 
-* *sentence* string
+* *string|array* sentences A sentence as a string or an array of strings of possible sentences
 
-## displayRecognizedSentence([newState=true])
+### Return:
 
-Speech KITT can display the last sentence the user said in the GUI.
-Set this to true to display the last sentence. Set it to false to remove it from the DOM.
+* undefined
 
-For more details on how to track the sentences said, see the documentation for setRecognizedSentence()
+# Good to Know
 
-See: [setRecognizedSentence()](#setrecognizedsentencesentence)
+## Commands Object
 
-### Params:
+Both the [init()]() and addCommands() methods receive a `commands` object.
 
-* **boolean** *[newState=true]* - Turn on/off display of recognized sentences
+annyang understands commands with `named variables`, `splats`, and `optional words`.
 
-## annyang()
+* Use `named variables` for one word arguments in your command.
+* Use `splats` to capture multi-word text at the end of your command (greedy).
+* Use `optional words` or phrases to define a part of the command as optional.
 
-Call this if you're using annyang to automatically configure Speech KITT to interact with it.
+#### Examples:
+````html
+<script>
+var commands = {
+  // annyang will capture anything after a splat (*) and pass it to the function.
+  // e.g. saying "Show me Batman and Robin" will call showFlickr('Batman and Robin');
+  'show me *tag': showFlickr,
 
-Automatically does the following:
-- Set Speech KITT's start command to annyang.start
-- Set Speech KITT's abort command to annyang.abort
-- Adds a callback to annyang's start event to call SpeechKITT.onStart
-- Adds a callback to annyang's end   event to call SpeechKITT.onEnd
+  // A named variable is a one word variable, that can fit anywhere in your command.
+  // e.g. saying "calculate October stats" will call calculateStats('October');
+  'calculate :month stats': calculateStats,
 
-<!-- End src/speechkitt.js -->
+  // By defining a part of the following command as optional, annyang will respond
+  // to both: "say hello to my little friend" as well as "say hello friend"
+  'say hello (to my little) friend': greeting
+};
+
+var showFlickr = function(tag) {
+  var url = 'http://api.flickr.com/services/rest/?tags='+tag;
+  $.getJSON(url);
+}
+
+var calculateStats = function(month) {
+  $('#stats').text('Statistics for '+month);
+}
+
+var greeting = function() {
+  $('#greeting').text('Hello!');
+}
+</script>
+````
+
+### Using Regular Expressions in commands
+For advanced commands, you can pass a regular expression object, instead of
+a simple string command.
+
+This is done by passing an object containing two properties: `regexp`, and
+`callback` instead of the function.
+
+#### Examples:
+````javascript
+var calculateFunction = function(month) { console.log(month); }
+var commands = {
+  // This example will accept any word as the "month"
+  'calculate :month stats': calculateFunction,
+  // This example will only accept months which are at the start of a quarter
+  'calculate :quarter stats': {'regexp': /^calculate (January|April|July|October) stats$/, 'callback': calculateFunction}
+}
+ ````
+
+<!-- End src/annyang.js -->
 
