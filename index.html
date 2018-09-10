@@ -4,11 +4,6 @@
   <title>annyang! Easily add speech recognition to your site</title>
   <meta name="description" content="annyang is a JavaScript SpeechRecognition library that makes adding voice commands to your site super-easy. Let your users control your site with their voice." />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta property="og:image" content="https://www.talater.com/annyang/images/icon_speech.png"/>
-  <meta property="og:title" content="annyang! Easily add speech recognition to your site"/>
-  <meta property="og:url" content="https://www.talater.com/annyang/"/>
-  <meta property="og:site_name" content="annyang"/>
-  <meta property="fb:admins" content="568390229" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/annyang/2.6.1/annyang.min.js"></script>
   <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
   <script>
@@ -18,58 +13,17 @@
   if (annyang) {
 
     // define the functions our commands will run.
-    var hello = function() {
-      $("#hello").slideDown("slow");
-      scrollTo("#section_hello");
-    };
 
-    var showFlickr = function(tag) {
-      $('#flickrGallery').show();
-      $('#flickrLoader p').text('Searching for '+tag).fadeIn('fast');
-      var url = '//api.flickr.com/services/rest/?method=flickr.photos.search&api_key=a828a6571bb4f0ff8890f7a386d61975&sort=interestingness-desc&per_page=9&format=json&callback=jsonFlickrApi&tags='+tag;
-      $.ajax({
-        type: 'GET',
-        url: url,
-        async: false,
-        jsonpCallback: 'jsonFlickrApi',
-        contentType: "application/json",
-        dataType: 'jsonp'
-      });
-      scrollTo("#section_image_search");
+    var search = function(tag) {
+        $('h1').text(tag).fadeIn('slow');
     };
-
-    var jsonFlickrApi = function(results) {
-      $('#flickrLoader p').fadeOut('slow');
-      var photos = results.photos.photo;
-      $.each(photos, function(index, photo) {
-        $(document.createElement("img"))
-          .attr({ src: '//farm'+photo.farm+'.staticflickr.com/'+photo.server+'/'+photo.id+'_'+photo.secret+'_s.jpg' })
-          .addClass("flickrGallery")
-          .appendTo(flickrGallery);
-      });
-    };
-
-    var showTPS = function(type) {
-      $('#tpsreport').show().animate({
-        bottom: '-100px'
-      }).delay('2000').animate({
-        bottom: '-500px'
-      });
-    };
-
-    var getStarted = function() {
-      window.location.href = 'https://github.com/TalAter/annyang';
-    }
 
     // define our commands.
     // * The key is the phrase you want your users to say.
     // * The value is the action to do.
     //   You can pass a function, a function name (as a string), or write your function as part of the commands object.
     var commands = {
-      'hello (there)':        hello,
-      'show me *search':      showFlickr,
-      'show :type report':    showTPS,
-      'let\'s get started':   getStarted,
+      'start *search': search,
     };
 
     // OPTIONAL: activate debug mode for detailed logging in the console
@@ -89,12 +43,6 @@
     $(document).ready(function() {
       $('#unsupported').fadeIn('fast');
     });
-  }
-
-  var scrollTo = function(identifier, speed) {
-    $('html, body').animate({
-        scrollTop: $(identifier).offset().top
-    }, speed || 1000);
   }
   </script>
   <link rel="stylesheet" href="css/main.min.css" />

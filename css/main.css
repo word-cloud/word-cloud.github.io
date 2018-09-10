@@ -1,5 +1,4 @@
 body {
-  background: url('../images/palette.png') repeat-x 0 -2px;
   font: 14px/1.6 helvetica, sans-serif;
   margin: 0 0;
   padding: 0 0;
@@ -67,7 +66,6 @@ p em {
   line-height: 45px;
 }
 p.voice_instructions {
-  background: url('../images/mini_icon_say.png') no-repeat 0 6px;
   padding-left: 24px;
 }
 #hello {
@@ -75,7 +73,6 @@ p.voice_instructions {
   font-weight: 600;
 }
 #flickrLoader p {
-  background: url('../images/flickr.png') no-repeat 0 7px;
   padding-left: 39px;
 }
 #flickrLoader {
@@ -107,7 +104,6 @@ section {
   color: #fff;
 }
 #section_footer {
-  background: #000 url('../images/footer_background.jpg') repeat-x top center;
   background-size: auto 100%;
   text-align: center;
   background-color: #34495d;
